@@ -16,6 +16,7 @@ const defaultHabits=[
 const sections=["Morning","Office","After office","Evening"];
 let state=load();
 let timers={};
+
 function dateKey(d=new Date()){return d.toISOString().slice(0,10)}
 function blankDay(){return {habits:{},water:0,leafy:0,instaSessions:[],instaRunning:false,instaStarted:0,sleep:null}}
 function load(){try{const x=JSON.parse(localStorage.getItem(KEY));if(x)return x}catch(e){}return {days:{[dateKey()]:blankDay()},habits:defaultHabits,theme:"light"}}
@@ -27,6 +28,7 @@ function formatLong(sec){const m=Math.floor(sec/60),s=sec%60;return `${m}m ${Str
 function totalInsta(){const d=day();let total=d.instaSessions.reduce((a,b)=>a+b,0);if(d.instaRunning)total+=Math.floor((Date.now()-d.instaStarted)/1000);return total}
 function isDone(h){const v=day().habits[h.id];if(h.type==="check")return !!v;if(h.type==="number")return (v||0)>=h.target;if(h.type==="timer")return (v||0)>=h.target*60;return false}
 function requiredHabits(){return state.habits.filter(h=>h.required)}
+function sectionDone(sec){const hs=state.habits.filter(h=>h.section===sec&&h.required);return hs.length>0&&hs.every(isDone)}
 function completion(){let done=requiredHabits().filter(isDone).length;let total=requiredHabits().length+2; // sleep + water are required daily checks
 if(day().sleep && sleepMinutes()>=360)done++;
 if(day().water>=3)done++;
@@ -34,33 +36,124 @@ return {done,total,pct:Math.round(done/total*100)}}
 function sleepMinutes(){const s=day().sleep;if(!s)return 0;return Math.round((s.minutes||0))}
 function sleepText(){const m=sleepMinutes();if(!m)return "—";return `${Math.floor(m/60)}h ${String(m%60).padStart(2,"0")}m`}
 function weeklyLeafy(){let n=0;const now=new Date();for(let i=0;i<7;i++){const d=new Date(now);d.setDate(now.getDate()-i);n+=state.days[dateKey(d)]?.leafy||0}return n}
+
 function render(){document.body.classList.toggle("dark",state.theme==="dark");const now=new Date();document.getElementById("dateLabel").textContent=now.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"}).toUpperCase();renderGlance();renderRoutine();renderWater();renderInsta();renderSleep();renderLeafy()}
-function renderGlance(){const c=completion();document.getElementById("overallPercent").textContent=c.pct+"%";document.getElementById("overallBar").style.width=c.pct+"%";document.getElementById("overallText").textContent=c.pct===100?"Perfect day complete.":`${c.done} of ${c.total} required checkpoints complete.`;document.getElementById("streakValue").textContent=`${calcStreak()} day streak`;document.getElementById("sleepMetric").textContent=sleepText();document.getElementById("sleepSub").textContent=sleepMinutes()>=360?"✓ Above minimum":"6h minimum";document.getElementById("waterMetric").textContent=day().water+" glasses";document.getElementById("waterSub").textContent=day().water>=3?"✓ Ideal morning water":"2 minimum · 3 ideal";const r=day().habits.reading||0;document.getElementById("readingMetric").textContent=`${r} / 10`;const it=totalInsta();document.getElementById("instaMetric").textContent=formatTime(it)+" / 30:00";document.getElementById("instaSub").textContent=it>1800?`${formatTime(it-1800)} over limit`:`${formatTime(1800-it)} remaining`}
+
+function renderGlance(){
+  const c=completion();
+  document.getElementById("overallPercent").textContent=c.pct+"%";
+  document.getElementById("overallText").textContent=c.pct===100?"Perfect day complete.":`${c.done} of ${c.total} required checkpoints complete.`;
+  document.getElementById("streakValue").textContent=`${calcStreak()} day streak`;
+  document.getElementById("sleepMetric").textContent=sleepText();
+  document.getElementById("sleepSub").textContent=sleepMinutes()>=360?"✓ Above minimum":"6h minimum";
+  document.getElementById("waterMetric").textContent=day().water+" glasses";
+  document.getElementById("waterSub").textContent=day().water>=3?"✓ Ideal morning water":"2 minimum · 3 ideal";
+  const r=day().habits.reading||0;
+  document.getElementById("readingMetric").textContent=`${r} / 10`;
+  const it=totalInsta();
+  document.getElementById("instaMetric").textContent=formatTime(it)+" / 30:00";
+  document.getElementById("instaSub").textContent=it>1800?`${formatTime(it-1800)} over limit`:`${formatTime(1800-it)} remaining`;
+
+  // signature ring: overall fill + one tick per section of the day
+  const ringFill=document.getElementById("ringFill");
+  if(ringFill){
+    const R=86,C=2*Math.PI*R;
+    ringFill.style.strokeDasharray=`${C}`;
+    ringFill.style.strokeDashoffset=`${C*(1-c.pct/100)}`;
+  }
+  const ticks=document.getElementById("ringTicks");
+  if(ticks){
+    ticks.innerHTML="";
+    const cx=100,cy=100,r=86;
+    sections.forEach((sec,i)=>{
+      const angle=(-90+i*90)*Math.PI/180;
+      const x=cx+r*Math.cos(angle),y=cy+r*Math.sin(angle);
+      const dot=document.createElementNS("http://www.w3.org/2000/svg","circle");
+      dot.setAttribute("cx",x);dot.setAttribute("cy",y);dot.setAttribute("r",6);
+      dot.setAttribute("class","ring-tick"+(sectionDone(sec)?" filled":""));
+      ticks.appendChild(dot);
+    });
+  }
+}
+
 function calcStreak(){let n=0;for(let i=0;i<365;i++){const d=new Date();d.setDate(d.getDate()-i);const k=dateKey(d);const x=state.days[k];if(!x)break;let ok=requiredHabits().every(h=>{const v=x.habits[h.id];return h.type==="check"?!!v:h.type==="number"?(v||0)>=h.target:(v||0)>=h.target*60});ok=ok&&(x.water>=3)&&(x.sleep?.minutes>=360);if(!ok)break;n++}return n}
+
 function renderRoutine(){const root=document.getElementById("routineList");root.innerHTML="";for(const sec of sections){const hs=state.habits.filter(h=>h.section===sec);if(!hs.length)continue;const wrap=document.createElement("section");wrap.className="routine-section";const completed=hs.filter(isDone).length;wrap.innerHTML=`<div class="routine-title"><h3>${sec}</h3><span class="section-count">${completed}/${hs.length}</span></div>`;hs.forEach(h=>wrap.appendChild(habitEl(h)));root.appendChild(wrap)}}
-function habitEl(h){const el=document.createElement("article");el.className="habit-card"+(isDone(h)?" done":"");const v=day().habits[h.id]||0;let meta=h.meta||"";if(h.deadline)meta=meta||"Before 9:00 AM";if(h.window)meta=h.window;if(h.type==="timer")meta=`${Math.floor(v/60)} / ${h.target} min`;if(h.type==="number")meta=`${v} / ${h.target} ${h.id==="reading"?"pages":""}`;const prog=(h.type!=="check")?`<div class="mini-progress"><span style="width:${Math.min(100,(h.type==="timer"?v/(h.target*60):v/h.target)*100)}%"></span></div>`:"";el.innerHTML=`<div class="habit-icon">${h.icon||"•"}</div><div><div class="habit-name">${h.name}</div><div class="habit-meta">${meta}</div>${prog}</div><div class="habit-actions">${h.id!=="reading"&&h.type==="number"?`<button class="mini-btn" data-action="minus">−</button>`:""}${h.type==="timer"?`<button class="mini-btn" data-action="timer">${timers[h.id]?"■":"▶"}</button>`:""}${h.type==="number"?`<button class="mini-btn" data-action="plus">＋</button>`:`<button class="check-btn" data-action="check">✓</button>`}</div>`;el.querySelectorAll("button").forEach(b=>b.onclick=()=>habitAction(h,b.dataset.action));if(h.deadline&&new Date().toTimeString().slice(0,5)>h.deadline&&!isDone(h))el.classList.add("overdue");return el}
-function habitAction(h,a){const d=day();let v=d.habits[h.id]||0;if(a==="check"){d.habits[h.id]=v?0:1;toast(d.habits[h.id]?"Completed":"Marked incomplete")}if(a==="plus"){d.habits[h.id]=v+1}if(a==="minus"){d.habits[h.id]=Math.max(0,v-1)}if(a==="timer"){if(timers[h.id]){clearInterval(timers[h.id]);timers[h.id]=null;const started=timers[h.id+"start"];d.habits[h.id]=(d.habits[h.id]||0)+(Date.now()-started);timers[h.id+"start"]=null;toast("Timer saved")}else{timers[h.id]=true;timers[h.id+"start"]=Date.now();const tick=setInterval(()=>{if(!timers[h.id])return clearInterval(tick);renderRoutine()},1000)}}save();render()}
+
+function habitEl(h){
+  const el=document.createElement("article");el.className="habit-card"+(isDone(h)?" done":"");
+  const v=day().habits[h.id]||0;
+  let meta=h.meta||"";
+  if(h.deadline)meta=meta||"Before 9:00 AM";
+  if(h.window)meta=h.window;
+  if(h.type==="timer")meta=`${Math.floor(v/60)} / ${h.target} min`;
+  if(h.type==="number")meta=`${v} / ${h.target} ${h.id==="reading"?"pages":""}`;
+  const prog=(h.type!=="check")?`<div class="mini-progress"><span style="width:${Math.min(100,(h.type==="timer"?v/(h.target*60):v/h.target)*100)}%"></span></div>`:"";
+  const isCustom=h.id.startsWith("custom-");
+  el.innerHTML=`<div class="habit-icon">${h.icon||"•"}</div><div><div class="habit-name">${h.name}</div><div class="habit-meta">${meta}</div>${prog}</div><div class="habit-actions">${h.id!=="reading"&&h.type==="number"?`<button class="mini-btn" data-action="minus" aria-label="Decrease">−</button>`:""}${h.type==="timer"?`<button class="mini-btn" data-action="timer" aria-label="Toggle timer">${timers[h.id]?"■":"▶"}</button>`:""}${h.type==="number"?`<button class="mini-btn" data-action="plus" aria-label="Increase">＋</button>`:`<button class="check-btn" data-action="check" aria-label="Mark done">✓</button>`}${isCustom?`<button class="mini-btn danger" data-action="delete" aria-label="Delete habit">✕</button>`:""}</div>`;
+  el.querySelectorAll("button").forEach(b=>b.onclick=()=>habitAction(h,b.dataset.action));
+  if(h.deadline&&new Date().toTimeString().slice(0,5)>h.deadline&&!isDone(h))el.classList.add("overdue");
+  return el;
+}
+
+function habitAction(h,a){
+  const d=day();let v=d.habits[h.id]||0;
+  if(a==="check"){d.habits[h.id]=v?0:1;toast(d.habits[h.id]?"Completed":"Marked incomplete")}
+  if(a==="plus"){d.habits[h.id]=v+1}
+  if(a==="minus"){d.habits[h.id]=Math.max(0,v-1)}
+  if(a==="timer"){
+    if(timers[h.id]){clearInterval(timers[h.id]);timers[h.id]=null;const started=timers[h.id+"start"];d.habits[h.id]=(d.habits[h.id]||0)+(Date.now()-started);timers[h.id+"start"]=null;toast("Timer saved")}
+    else{timers[h.id]=true;timers[h.id+"start"]=Date.now();const tick=setInterval(()=>{if(!timers[h.id])return clearInterval(tick);renderRoutine()},1000)}
+  }
+  if(a==="delete"){
+    if(!confirm(`Remove "${h.name}" from your routine?`))return;
+    state.habits=state.habits.filter(x=>x.id!==h.id);
+    delete d.habits[h.id];
+    toast("Habit removed");
+  }
+  save();render();
+}
+
 function renderWater(){const n=day().water;const root=document.getElementById("waterOrbs");root.innerHTML="";for(let i=0;i<3;i++){const e=document.createElement("div");e.className="water-orb"+(i<n?" filled":"");e.textContent=i<n?"✓":"○";root.appendChild(e)}document.getElementById("waterCount").textContent=n;document.getElementById("waterStatus").textContent=n>=3?"✓ Ideal morning water":"2 minimum · 3 ideal"}
 function renderInsta(){const t=totalInsta();document.getElementById("instaTimer").textContent=formatTime(t);document.getElementById("instaTotal").textContent=formatLong(t)+" used";document.getElementById("instaRemaining").textContent=t>1800?formatLong(t-1800)+" over limit":formatLong(1800-t)+" remaining";document.getElementById("instaBar").style.width=Math.min(100,t/1800*100)+"%";document.getElementById("instaStart").textContent=day().instaRunning?"■ Stop timer":"▶ Start timer";document.getElementById("instaStatus").textContent=t>=1800?"Limit reached":"30 min limit";document.body.classList.toggle("warn",t>=1500)}
 function renderSleep(){const s=day().sleep;if(s){document.getElementById("bedtime").value=s.bed;document.getElementById("wakeTime").value=s.wake;document.getElementById("sleepHint").textContent=sleepText()+(sleepMinutes()>=360?" · ✓ target reached":" · ⚠ below 6h");document.getElementById("sleepStatus").textContent=sleepMinutes()>=360?"✓ Target reached":"Below 6h"}}
 function renderLeafy(){const n=weeklyLeafy();document.getElementById("leafyStatus").textContent=`${n} / 2`;const root=document.getElementById("leafyDots");root.innerHTML="";for(let i=0;i<Math.max(2,n);i++){const e=document.createElement("span");e.className="dot"+(i<n?" filled":"");root.appendChild(e)}}
-document.getElementById("waterPlus").onclick=()=>{day().water++;save();render();toast("Water logged")};document.getElementById("waterMinus").onclick=()=>{day().water=Math.max(0,day().water-1);save();render()};
+
+document.getElementById("waterPlus").onclick=()=>{day().water++;save();render();toast("Water logged")};
+document.getElementById("waterMinus").onclick=()=>{day().water=Math.max(0,day().water-1);save();render()};
 document.getElementById("leafyAdd").onclick=()=>{day().leafy++;save();render();toast("Leafy vegetables logged")};
 document.getElementById("instaStart").onclick=()=>{const d=day();if(d.instaRunning){d.instaSessions.push(Math.floor((Date.now()-d.instaStarted)/1000));d.instaRunning=false;d.instaStarted=0;toast("Instagram session saved")}else{d.instaRunning=true;d.instaStarted=Date.now();toast("Instagram timer started")}save();render()};
 setInterval(()=>{if(day().instaRunning){renderInsta();renderGlance()}},1000);
 document.getElementById("saveSleep").onclick=()=>{const bed=document.getElementById("bedtime").value,wake=document.getElementById("wakeTime").value;if(!bed||!wake)return toast("Enter both times");let [bh,bm]=bed.split(":").map(Number),[wh,wm]=wake.split(":").map(Number);let a=bh*60+bm,b=wh*60+wm;if(b<=a)b+=1440;day().sleep={bed,wake,minutes:b-a};save();render();toast("Sleep saved")};
 document.getElementById("themeBtn").onclick=()=>{state.theme=state.theme==="dark"?"light":"dark";save();render()};
+
+// --- Add-habit modal ---------------------------------------------------
+// A single "open" class drives visibility. No inline styles and no
+// `hidden` attribute are touched after load, so there is exactly one
+// source of truth for whether the modal is showing.
 const modal=document.getElementById("modalBackdrop");
-function closeModal(){modal.hidden=true;modal.classList.add("is-hidden");modal.style.display="none";document.body.style.overflow=""}
-function openModal(){modal.hidden=false;modal.classList.remove("is-hidden");modal.style.display="grid";document.body.style.overflow="hidden"}
-closeModal();
+function openModal(){modal.classList.add("open");document.body.style.overflow="hidden";document.getElementById("habitName").focus()}
+function closeModal(){modal.classList.remove("open");document.body.style.overflow=""}
 document.getElementById("addHabitBtn").onclick=openModal;
 document.getElementById("closeModal").onclick=closeModal;
 modal.addEventListener("click",e=>{if(e.target===modal)closeModal()});
-document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&modal.classList.contains("open"))closeModal()});
 document.getElementById("habitType").onchange=e=>document.getElementById("targetWrap").hidden=e.target.value==="check";
-document.getElementById("saveHabit").onclick=()=>{const name=document.getElementById("habitName").value.trim();if(!name)return toast("Give the habit a name");const type=document.getElementById("habitType").value;state.habits.push({id:"custom-"+Date.now(),name,section:document.getElementById("habitSection").value,type,target:Math.max(1,Number(document.getElementById("habitTarget").value)||1),required:document.getElementById("habitRequired").checked,icon:"•"});save();closeModal();document.getElementById("habitName").value="";render();toast("Habit added")};
+document.getElementById("saveHabit").onclick=()=>{
+  const name=document.getElementById("habitName").value.trim();
+  if(!name)return toast("Give the habit a name");
+  const type=document.getElementById("habitType").value;
+  state.habits.push({id:"custom-"+Date.now(),name,section:document.getElementById("habitSection").value,type,target:Math.max(1,Number(document.getElementById("habitTarget").value)||1),required:document.getElementById("habitRequired").checked,icon:"•"});
+  save();
+  closeModal();
+  document.getElementById("habitName").value="";
+  document.getElementById("habitTarget").value="10";
+  render();
+  toast("Habit added");
+};
+
 document.querySelectorAll(".nav-item").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav-item").forEach(x=>x.classList.remove("active"));b.classList.add("active");toast(b.dataset.view==="today"?"Today is ready":"V1: "+b.dataset.view+" view coming next")});
+
 render();
 
 if("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(()=>{});

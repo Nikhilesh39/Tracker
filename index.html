@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f5f3ee">
+  <meta name="theme-color" content="#f6f1e7">
   <meta name="description" content="A private offline daily routine companion.">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon.svg">
@@ -22,13 +22,21 @@
 
     <main>
       <section class="hero-card">
-        <div class="hero-copy">
-          <span class="eyebrow">AT A GLANCE</span>
-          <div class="hero-percent" id="overallPercent">0%</div>
-          <p id="overallText">Your day is ready to begin.</p>
-          <div class="progress-track large"><span id="overallBar"></span></div>
-          <div class="streak-line"><span>🔥</span><strong id="streakValue">0 day streak</strong><span class="muted">Perfect days only</span></div>
+        <div class="hero-ring-wrap">
+          <svg class="hero-ring" viewBox="0 0 200 200" aria-hidden="true">
+            <g transform="rotate(-90 100 100)">
+              <circle class="ring-track" cx="100" cy="100" r="86"/>
+              <circle class="ring-fill" id="ringFill" cx="100" cy="100" r="86"/>
+            </g>
+            <g id="ringTicks"></g>
+          </svg>
+          <div class="hero-ring-center">
+            <span class="eyebrow">TODAY'S RITUAL</span>
+            <div class="hero-percent" id="overallPercent">0%</div>
+            <p id="overallText">Your day is ready to begin.</p>
+          </div>
         </div>
+        <div class="streak-line"><span class="flame">◆</span><strong id="streakValue">0 day streak</strong><span class="muted">Perfect days only</span></div>
       </section>
 
       <section class="glance-grid">
@@ -63,7 +71,7 @@
           <span class="status-pill" id="instaStatus">30 min limit</span>
         </div>
         <div class="timer-display" id="instaTimer">00:00</div>
-        <div class="progress-track"><span id="instaBar"></span></div>
+        <div class="progress-track insta"><span id="instaBar"></span></div>
         <div class="timer-meta"><span id="instaTotal">0m 00s used</span><span id="instaRemaining">30m remaining</span></div>
         <button class="primary-btn" id="instaStart">▶ Start timer</button>
       </section>
@@ -75,9 +83,9 @@
         </div>
         <div class="water-orbs" id="waterOrbs"></div>
         <div class="water-actions">
-          <button class="secondary-btn" id="waterMinus">−</button>
+          <button class="secondary-btn" id="waterMinus" aria-label="Remove a glass">−</button>
           <div class="water-total"><strong id="waterCount">0</strong><span>glasses</span></div>
-          <button class="primary-round" id="waterPlus">+</button>
+          <button class="primary-round" id="waterPlus" aria-label="Add a glass">+</button>
         </div>
         <p class="hint">Office bottle: 750 ml · Daily water target: at least 2 L.</p>
       </section>
@@ -106,26 +114,28 @@
     </main>
 
     <nav class="bottom-nav">
-      <button class="nav-item active" data-view="today">Today</button>
-      <button class="nav-item" data-view="history">History</button>
-      <button class="nav-item" data-view="insights">Insights</button>
-      <button class="nav-item" data-view="settings">Settings</button>
+      <button class="nav-item active" data-view="today"><span class="nav-icon">◐</span>Today</button>
+      <button class="nav-item" data-view="history"><span class="nav-icon">◷</span>History</button>
+      <button class="nav-item" data-view="insights"><span class="nav-icon">✺</span>Insights</button>
+      <button class="nav-item" data-view="settings"><span class="nav-icon">⚙</span>Settings</button>
     </nav>
   </div>
 
-  <div class="modal-backdrop is-hidden" id="modalBackdrop" hidden style="display:none!important">
-    <section class="modal" role="dialog" aria-modal="true">
-      <div class="modal-head"><div><span class="eyebrow">CUSTOMIZE</span><h2 id="modalTitle">Add habit</h2></div><button class="icon-btn" id="closeModal">×</button></div>
-      <label>Habit name<input id="habitName" placeholder="e.g. Take a short walk"></label>
-      <label>Section<select id="habitSection"><option>Morning</option><option>Office</option><option>After office</option><option>Evening</option></select></label>
-      <label>Tracking type<select id="habitType"><option value="check">Simple check</option><option value="timer">Timer</option><option value="number">Number / progress</option></select></label>
-      <label id="targetWrap" hidden>Daily target<input id="habitTarget" type="number" min="1" value="10"></label>
-      <label class="switch-row"><span>Required for Perfect Day</span><input id="habitRequired" type="checkbox" checked></label>
-      <button class="primary-btn" id="saveHabit">Add habit</button>
+  <div class="modal-backdrop" id="modalBackdrop">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head"><div><span class="eyebrow">CUSTOMIZE</span><h2 id="modalTitle">Add habit</h2></div><button class="icon-btn" id="closeModal" aria-label="Close">×</button></div>
+      <div class="modal-body">
+        <label>Habit name<input id="habitName" placeholder="e.g. Take a short walk"></label>
+        <label>Section<select id="habitSection"><option>Morning</option><option>Office</option><option>After office</option><option>Evening</option></select></label>
+        <label>Tracking type<select id="habitType"><option value="check">Simple check</option><option value="timer">Timer</option><option value="number">Number / progress</option></select></label>
+        <label id="targetWrap" hidden>Daily target<input id="habitTarget" type="number" min="1" value="10"></label>
+        <label class="switch-row"><span>Required for Perfect Day</span><input id="habitRequired" type="checkbox" checked></label>
+        <button class="primary-btn" id="saveHabit">Add habit</button>
+      </div>
     </section>
   </div>
 
   <div class="toast" id="toast"></div>
-  <script src="app.js?v=2"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>
