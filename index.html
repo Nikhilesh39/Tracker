@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f5f3ee">
+  <meta name="description" content="A private offline daily routine companion.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="stylesheet" href="style.css">
+  <title>Routine — Daily Companion</title>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow" id="dateLabel">TODAY</p>
+        <h1>Routine</h1>
+      </div>
+      <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">☼</button>
+    </header>
+
+    <main>
+      <section class="hero-card">
+        <div class="hero-copy">
+          <span class="eyebrow">AT A GLANCE</span>
+          <div class="hero-percent" id="overallPercent">0%</div>
+          <p id="overallText">Your day is ready to begin.</p>
+          <div class="progress-track large"><span id="overallBar"></span></div>
+          <div class="streak-line"><span>🔥</span><strong id="streakValue">0 day streak</strong><span class="muted">Perfect days only</span></div>
+        </div>
+      </section>
+
+      <section class="glance-grid">
+        <article class="metric-card">
+          <div class="metric-icon sleep">☾</div>
+          <div><span class="metric-label">LAST NIGHT</span><strong id="sleepMetric">—</strong><small id="sleepSub">6h minimum</small></div>
+        </article>
+        <article class="metric-card">
+          <div class="metric-icon water">◒</div>
+          <div><span class="metric-label">WATER</span><strong id="waterMetric">0 glasses</strong><small id="waterSub">2 minimum · 3 ideal</small></div>
+        </article>
+        <article class="metric-card">
+          <div class="metric-icon reading">Aa</div>
+          <div><span class="metric-label">READING</span><strong id="readingMetric">0 / 10</strong><small>pages today</small></div>
+        </article>
+        <article class="metric-card">
+          <div class="metric-icon insta">◉</div>
+          <div><span class="metric-label">INSTAGRAM</span><strong id="instaMetric">0:00 / 30:00</strong><small id="instaSub">remaining</small></div>
+        </article>
+      </section>
+
+      <div class="section-heading">
+        <div><span class="eyebrow">YOUR DAY</span><h2>Daily routine</h2></div>
+        <button class="text-btn" id="addHabitBtn">＋ Add habit</button>
+      </div>
+
+      <div id="routineList"></div>
+
+      <section class="special-card">
+        <div class="card-heading">
+          <div><span class="eyebrow">TRACKER</span><h3>Instagram</h3></div>
+          <span class="status-pill" id="instaStatus">30 min limit</span>
+        </div>
+        <div class="timer-display" id="instaTimer">00:00</div>
+        <div class="progress-track"><span id="instaBar"></span></div>
+        <div class="timer-meta"><span id="instaTotal">0m 00s used</span><span id="instaRemaining">30m remaining</span></div>
+        <button class="primary-btn" id="instaStart">▶ Start timer</button>
+      </section>
+
+      <section class="special-card">
+        <div class="card-heading">
+          <div><span class="eyebrow">HYDRATION</span><h3>Water</h3></div>
+          <span class="status-pill" id="waterStatus">2 minimum · 3 ideal</span>
+        </div>
+        <div class="water-orbs" id="waterOrbs"></div>
+        <div class="water-actions">
+          <button class="secondary-btn" id="waterMinus">−</button>
+          <div class="water-total"><strong id="waterCount">0</strong><span>glasses</span></div>
+          <button class="primary-round" id="waterPlus">+</button>
+        </div>
+        <p class="hint">Office bottle: 750 ml · Daily water target: at least 2 L.</p>
+      </section>
+
+      <section class="special-card">
+        <div class="card-heading">
+          <div><span class="eyebrow">SLEEP</span><h3>Last night</h3></div>
+          <span class="status-pill" id="sleepStatus">6h minimum</span>
+        </div>
+        <div class="sleep-inputs">
+          <label>Bedtime<input type="time" id="bedtime"></label>
+          <label>Wake time<input type="time" id="wakeTime"></label>
+        </div>
+        <button class="primary-btn" id="saveSleep">Save sleep</button>
+        <p class="hint" id="sleepHint">Enter your sleep and wake times manually.</p>
+      </section>
+
+      <section class="weekly-card">
+        <div class="card-heading">
+          <div><span class="eyebrow">WEEKLY</span><h3>Leafy vegetables</h3></div>
+          <span class="status-pill" id="leafyStatus">0 / 2</span>
+        </div>
+        <div class="dots" id="leafyDots"></div>
+        <button class="secondary-btn wide" id="leafyAdd">＋ I ate leafy vegetables</button>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-view="today">Today</button>
+      <button class="nav-item" data-view="history">History</button>
+      <button class="nav-item" data-view="insights">Insights</button>
+      <button class="nav-item" data-view="settings">Settings</button>
+    </nav>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop" hidden>
+    <section class="modal" role="dialog" aria-modal="true">
+      <div class="modal-head"><div><span class="eyebrow">CUSTOMIZE</span><h2 id="modalTitle">Add habit</h2></div><button class="icon-btn" id="closeModal">×</button></div>
+      <label>Habit name<input id="habitName" placeholder="e.g. Take a short walk"></label>
+      <label>Section<select id="habitSection"><option>Morning</option><option>Office</option><option>After office</option><option>Evening</option></select></label>
+      <label>Tracking type<select id="habitType"><option value="check">Simple check</option><option value="timer">Timer</option><option value="number">Number / progress</option></select></label>
+      <label id="targetWrap" hidden>Daily target<input id="habitTarget" type="number" min="1" value="10"></label>
+      <label class="switch-row"><span>Required for Perfect Day</span><input id="habitRequired" type="checkbox" checked></label>
+      <button class="primary-btn" id="saveHabit">Add habit</button>
+    </section>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="app.js"></script>
+</body>
+</html>

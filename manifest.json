@@ -1,0 +1,10 @@
+{
+  "name":"Routine — Daily Companion",
+  "short_name":"Routine",
+  "start_url":".",
+  "display":"standalone",
+  "background_color":"#f5f3ee",
+  "theme_color":"#657b63",
+  "description":"Private offline daily routine companion.",
+  "icons":[{"src":"icons/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
