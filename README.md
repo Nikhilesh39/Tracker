@@ -1,4 +1,4 @@
-# Routine — Daily Companion V1
+# Routine — Daily Companion V2
 
 A mobile-first, offline PWA for tracking daily routines.
 
@@ -20,4 +20,4 @@ Then open `http://localhost:8000`.
 ## Notes
 - Data is stored locally in the browser using localStorage.
 - No login, backend, analytics, or external API is used.
-- Browser notification support is intentionally not wired into V1 yet; the reminder architecture can be added next.
+- Browser notification support is intentionally not wired into V2 yet; the reminder architecture can be added next.

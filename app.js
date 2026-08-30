@@ -50,9 +50,16 @@ document.getElementById("instaStart").onclick=()=>{const d=day();if(d.instaRunni
 setInterval(()=>{if(day().instaRunning){renderInsta();renderGlance()}},1000);
 document.getElementById("saveSleep").onclick=()=>{const bed=document.getElementById("bedtime").value,wake=document.getElementById("wakeTime").value;if(!bed||!wake)return toast("Enter both times");let [bh,bm]=bed.split(":").map(Number),[wh,wm]=wake.split(":").map(Number);let a=bh*60+bm,b=wh*60+wm;if(b<=a)b+=1440;day().sleep={bed,wake,minutes:b-a};save();render();toast("Sleep saved")};
 document.getElementById("themeBtn").onclick=()=>{state.theme=state.theme==="dark"?"light":"dark";save();render()};
-const modal=document.getElementById("modalBackdrop");document.getElementById("addHabitBtn").onclick=()=>{modal.hidden=false;document.body.style.overflow="hidden"};document.getElementById("closeModal").onclick=()=>{modal.hidden=true; document.body.style.overflow=""};
-modal.addEventListener("click",e=>{if(e.target===modal){modal.hidden=true;document.body.style.overflow=""}});document.getElementById("habitType").onchange=e=>document.getElementById("targetWrap").hidden=e.target.value==="check";
-document.getElementById("saveHabit").onclick=()=>{const name=document.getElementById("habitName").value.trim();if(!name)return toast("Give the habit a name");const type=document.getElementById("habitType").value;state.habits.push({id:"custom-"+Date.now(),name,section:document.getElementById("habitSection").value,type,target:Math.max(1,Number(document.getElementById("habitTarget").value)||1),required:document.getElementById("habitRequired").checked,icon:"•"});save();modal.hidden=true;document.body.style.overflow="";document.getElementById("habitName").value="";render();toast("Habit added")};
+const modal=document.getElementById("modalBackdrop");
+function closeModal(){modal.hidden=true;modal.classList.add("is-hidden");modal.style.display="none";document.body.style.overflow=""}
+function openModal(){modal.hidden=false;modal.classList.remove("is-hidden");modal.style.display="grid";document.body.style.overflow="hidden"}
+closeModal();
+document.getElementById("addHabitBtn").onclick=openModal;
+document.getElementById("closeModal").onclick=closeModal;
+modal.addEventListener("click",e=>{if(e.target===modal)closeModal()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal()});
+document.getElementById("habitType").onchange=e=>document.getElementById("targetWrap").hidden=e.target.value==="check";
+document.getElementById("saveHabit").onclick=()=>{const name=document.getElementById("habitName").value.trim();if(!name)return toast("Give the habit a name");const type=document.getElementById("habitType").value;state.habits.push({id:"custom-"+Date.now(),name,section:document.getElementById("habitSection").value,type,target:Math.max(1,Number(document.getElementById("habitTarget").value)||1),required:document.getElementById("habitRequired").checked,icon:"•"});save();closeModal();document.getElementById("habitName").value="";render();toast("Habit added")};
 document.querySelectorAll(".nav-item").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav-item").forEach(x=>x.classList.remove("active"));b.classList.add("active");toast(b.dataset.view==="today"?"Today is ready":"V1: "+b.dataset.view+" view coming next")});
 render();
 
